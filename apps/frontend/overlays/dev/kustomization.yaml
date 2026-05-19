@@ -1,0 +1,50 @@
+---
+# =============================================================================
+# Frontend - Dev Overlay
+# =============================================================================
+# Dev overlay: Minimal resources, lower replicas, relaxed constraints.
+# This is what runs on the single-node k3s dev cluster.
+#
+# Differences from base:
+#   - 2 replicas (same as base — sufficient for dev)
+#   - Lower resource limits (save resources on dev machine)
+#   - HPA maxReplicas: 3 (vs 5 in prod)
+#   - Self-signed TLS (via ca-issuer)
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../..
+
+patches:
+  # Lower resource limits for dev (laptop has limited resources)
+  - target:
+      kind: Deployment
+      name: frontend
+    patch: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: frontend
+      spec:
+        template:
+          spec:
+            containers:
+              - name: nginx
+                resources:
+                  limits:
+                    cpu: 200m
+                    memory: 128Mi
+
+  # Lower HPA ceiling for dev
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: frontend
+    patch: |
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: frontend
+      spec:
+        maxReplicas: 3

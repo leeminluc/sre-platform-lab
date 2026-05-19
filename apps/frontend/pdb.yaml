@@ -1,0 +1,41 @@
+---
+# =============================================================================
+# Frontend Application - PodDisruptionBudget
+# =============================================================================
+# Production relevance: PDB protects application availability during
+# voluntary disruptions (node drains, cluster upgrades, rolling updates).
+#
+# Without a PDB:
+#   - `kubectl drain` could evict ALL pods simultaneously
+#   - Cluster autoscaler could scale down the wrong node
+#   - Rolling node updates could take the app to zero replicas
+#
+# With minAvailable: 1:
+#   - Kubernetes ensures at least 1 pod stays running during disruptions
+#   - Node drains must proceed one pod at a time
+#   - Cluster upgrades maintain application availability
+#
+# PDB does NOT protect against:
+#   - Pod crashes (that's what replicas > 1 + anti-affinity is for)
+#   - Node failures (that's what pod spreading is for)
+#   - Application errors (that's what probes are for)
+#
+# In production:
+#   - Use minAvailable for stateless services (e.g., minAvailable: 50%)
+#   - Use maxUnavailable for stateful services (e.g., maxUnavailable: 1)
+# =============================================================================
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: frontend
+  namespace: frontend
+  labels:
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/component: web-server
+    app.kubernetes.io/part-of: sre-platform-lab
+    app.kubernetes.io/managed-by: flux
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: frontend

@@ -130,20 +130,25 @@ graph TB
         DevCluster └── AppsYaml[apps.yaml]
         
         InfraDir ├── NginxIngress[nginx-ingress/]
+        InfraDir ├── CertManager[cert-manager/]
         
         AppsDir ├── FrontendApp[frontend/]
+        FrontendApp ├── Overlays[overlays/]
     end
 
     subgraph "Kubernetes Cluster"
         FluxNS[flux-system namespace]
         IngressNS[ingress-nginx namespace]
+        CertNS[cert-manager namespace]
         FrontendNS[frontend namespace]
     end
 
     FluxSys -->|creates| FluxNS
     InfraYaml -->|reconciles| IngressNS
+    InfraYaml -->|reconciles| CertNS
     AppsYaml -->|reconciles| FrontendNS
     NginxIngress -->|deploys to| IngressNS
+    CertManager -->|deploys to| CertNS
     FrontendApp -->|deploys to| FrontendNS
 
     style Root fill:#fafafa
@@ -197,10 +202,15 @@ This separation is the production standard. Terraform creates the cluster, then 
 
 ```mermaid
 graph TB
-    subgraph "Current (Milestone 1)"
+    subgraph "Current (Milestones 1-2)"
         GitAuth[GitHub PAT for Flux auth]
         K3sToken[k3s cluster token]
         Kubeconfig[kubeconfig file]
+        TLS[cert-manager + self-signed CA]
+        NP[Network Policies - default deny]
+        AntiAffinity[Pod anti-affinity]
+        PDB[PodDisruptionBudgets]
+        HPA[Horizontal Pod Autoscaler]
     end
 
     subgraph "Planned (Future Milestones)"
@@ -208,16 +218,17 @@ graph TB
         Vault[HashiCorp Vault for secrets]
         ESO[External Secrets Operator]
         Cosign[Cosign image verification]
-        NP[Network Policies]
         RBAC[Strict RBAC policies]
         PSS[Pod Security Standards]
+        Calico[Calico/Cilium CNI for NP enforcement]
     end
 
     GitAuth -.->|upgrade to| Cosign
     K3sToken -.->|upgrade to| Vault
     Kubeconfig -.->|upgrade to| SSO
+    TLS -.->|upgrade to| Vault
+    NP -.->|enforced by| Calico
     ESO --> Vault
-    NP --> RBAC
     RBAC --> PSS
 
     style GitAuth fill:#e8f5e9
@@ -235,6 +246,7 @@ graph TB
 | Kubernetes | k3s | v1.33.11+k3s1 | CNCF-certified, single binary, low resource |
 | GitOps | FluxCD | v2.x | Lightweight, CNCF graduated, Kustomize-native |
 | IaC | Terraform | >= 1.0 | Industry standard, modular, state management |
-| Ingress | NGINX | (Milestone 2) | Battle-tested, rich annotations, wide adoption |
+| Ingress | NGINX | v4.12.1 (HelmRelease) | Battle-tested, rich annotations, wide adoption |
+| TLS | cert-manager | v1.17.2 (HelmRelease) | Auto certificate provisioning, Let's Encrypt / CA |
 | Monitoring | Prometheus + Grafana | (Milestone 3) | CNCF ecosystem standard |
 | Container Runtime | containerd | (bundled with k3s) | Production default (not Docker) |

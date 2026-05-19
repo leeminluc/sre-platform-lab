@@ -1,0 +1,23 @@
+---
+# =============================================================================
+# Infrastructure - NGINX Ingress Helm Repository
+# =============================================================================
+# Production relevance: Flux HelmRepository defines where to pull Helm charts
+# from. Pinning to the official ingress-nginx chart ensures:
+#   - Verified, community-maintained chart
+#   - Version pinning for reproducible deployments
+#   - GitOps-managed chart source (no manual `helm repo add`)
+#
+# The interval controls how often Flux checks for new chart versions.
+# In production, you'd use a private chart registry (e.g., Harbor, ECR)
+# for supply chain security and image verification.
+# =============================================================================
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: ingress-nginx
+  namespace: flux-system
+spec:
+  # Official NGINX ingress controller Helm chart repository
+  url: https://kubernetes.github.io/ingress-nginx
+  interval: 1h0m0s

@@ -1,0 +1,51 @@
+---
+# =============================================================================
+# Frontend Application - Horizontal Pod Autoscaler
+# =============================================================================
+# Production relevance: HPA automatically scales pods based on resource usage.
+# This is a core SRE practice — handling traffic spikes without manual
+# intervention.
+#
+# Key configuration:
+#   - minReplicas: 2 — minimum for high availability (never go below 2)
+#   - maxReplicas: 5 — ceiling to prevent unbounded scaling (cost control)
+#   - targetCPU: 70% — scale up when average CPU exceeds 70% of request
+#
+# Why scale on requests (not limits):
+#   - CPU requests represent guaranteed compute
+#   - At 70% of request, pods are approaching their guaranteed capacity
+#   - Scaling before hitting limits prevents throttling and latency spikes
+#
+# In production, you would also:
+#   - Add memory-based scaling (targetMemoryUtilization)
+#   - Use custom metrics (request latency, queue depth)
+#   - Use KEDA for event-driven scaling (Kafka, SQS, etc.)
+#   - Set scaleDownStabilizationWindowSeconds to prevent flapping
+#
+# NOTE: On single-node k3s, HPA may be limited by node capacity.
+# The metrics-server addon must be installed for HPA to work.
+# =============================================================================
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: frontend
+  namespace: frontend
+  labels:
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/component: web-server
+    app.kubernetes.io/part-of: sre-platform-lab
+    app.kubernetes.io/managed-by: flux
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: frontend
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

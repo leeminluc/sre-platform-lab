@@ -1,0 +1,59 @@
+---
+# =============================================================================
+# Frontend Application - Ingress with TLS
+# =============================================================================
+# Production relevance: Ingress exposes the application to external traffic.
+# Key design decisions:
+#
+# 1. TLS enabled via cert-manager (ca-issuer)
+#    - cert-manager watches this Ingress and auto-provisions a certificate
+#    - The TLS secret is created automatically — no manual cert management
+#
+# 2. ingressClassName: nginx
+#    - Routes through our NGINX ingress controller (not Traefik)
+#    - NGINX was set as default, but explicit class is clearer
+#
+# 3. Host-based routing
+#    - In production, this would be a real domain (e.g., app.example.com)
+#    - For dev, we use sre-platform.local (add to /etc/hosts for testing)
+#
+# In production, you would also:
+#   - Add rate limiting annotations
+#   - Configure WAF annotations
+#   - Use a real domain with Let's Encrypt
+#   - Add authentication annotations (OAuth2, basic auth)
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend
+  namespace: frontend
+  labels:
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/component: web-server
+    app.kubernetes.io/part-of: sre-platform-lab
+    app.kubernetes.io/managed-by: flux
+  annotations:
+    # Tell cert-manager to issue a certificate for this Ingress
+    cert-manager.io/cluster-issuer: ca-issuer
+    # Redirect HTTP → HTTPS
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # Increase client body size for uploads
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - sre-platform.local
+      secretName: frontend-tls
+  rules:
+    - host: sre-platform.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

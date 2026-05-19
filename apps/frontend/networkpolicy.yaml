@@ -1,0 +1,86 @@
+---
+# =============================================================================
+# Frontend Application - Network Policies
+# =============================================================================
+# Production relevance: Network policies implement zero-trust networking
+# at the pod level. Without them, any pod can talk to any other pod.
+#
+# Strategy: Default-deny + allow-specific
+#   1. Deny all ingress to the namespace by default
+#   2. Allow ingress from NGINX ingress controller to frontend pods
+#   3. Allow DNS resolution (required for all pods)
+#   4. Allow egress from frontend pods (for external API calls, etc.)
+#
+# This is the production pattern. Every namespace should have:
+#   - A default-deny ingress policy
+#   - Specific allow policies for known traffic patterns
+#
+# NOTE: k3s uses flannel by default, which does NOT enforce NetworkPolicy.
+# For enforcement, install Calico or Cilium as the CNI. These policies
+# are still valuable as documentation of intended traffic flow and will
+# be enforced when you migrate to a production CNI.
+# =============================================================================
+# Policy 1: Default deny all ingress in the frontend namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: frontend
+spec:
+  podSelector: {}  # Selects all pods in the namespace
+  policyTypes:
+    - Ingress
+---
+# Policy 2: Allow ingress from NGINX ingress controller to frontend
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-from-ingress
+  namespace: frontend
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: frontend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: infrastructure
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/component: ingress-controller
+      ports:
+        - port: 80
+          protocol: TCP
+---
+# Policy 3: Allow frontend pods to make outbound connections
+# Required for: DNS resolution, external API calls, health checks
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress
+  namespace: frontend
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: frontend
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS resolution (required for all pods)
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Allow all outbound HTTPS (for external API calls)
+    - ports:
+        - port: 443
+          protocol: TCP

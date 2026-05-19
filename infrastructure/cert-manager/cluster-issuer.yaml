@@ -1,0 +1,56 @@
+---
+# =============================================================================
+# Infrastructure - cert-manager ClusterIssuer (Self-Signed for Dev)
+# =============================================================================
+# Production relevance: ClusterIssuer defines how certificates are issued.
+#
+# For this dev/lab environment, we use a self-signed CA. This means:
+#   - Certificates work immediately without a real domain
+#   - No Let's Encrypt rate limiting concerns
+#   - Browser warnings are expected (self-signed)
+#
+# In production, you would use:
+#   - Let's Encrypt with HTTP01 solver (for public domains)
+#   - Let's Encrypt with DNS01 solver (for wildcard certs)
+#   - Private CA (Vault, AWS ACM, Google CA Service)
+#
+# The self-signed issuer is a legitimate pattern for:
+#   - Internal service mesh mTLS
+#   - Development and testing
+#   - Air-gapped environments
+# =============================================================================
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-ca
+spec:
+  selfSigned: {}
+---
+# This Certificate creates the self-signed CA root certificate.
+# All application certificates will be signed by this CA.
+# In production, this would be replaced by a real CA.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: selfsigned-ca-root
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: sre-platform-lab-ca
+  secretName: ca-root-secret
+  duration: 8760h  # 1 year
+  renewBefore: 720h  # Renew 30 days before expiry
+  issuerRef:
+    name: selfsigned-ca
+    kind: ClusterIssuer
+---
+# This ClusterIssuer uses the CA root certificate to issue app certificates.
+# Application Ingress resources reference this issuer via:
+#   cert-manager.io/cluster-issuer: ca-issuer
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: ca-issuer
+spec:
+  ca:
+    secretName: ca-root-secret

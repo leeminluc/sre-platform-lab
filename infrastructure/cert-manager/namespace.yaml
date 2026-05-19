@@ -1,0 +1,20 @@
+---
+# =============================================================================
+# Infrastructure - cert-manager Namespace
+# =============================================================================
+# Production relevance: cert-manager automates TLS certificate management.
+# It watches Ingress resources with TLS annotations and provisions certs
+# automatically from configured issuers (Let's Encrypt, Vault, etc.).
+#
+# Dedicated namespace ensures:
+#   - RBAC isolation for certificate authority operations
+#   - Resource quotas for the controller
+#   - Separate lifecycle from application workloads
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager
+  labels:
+    app.kubernetes.io/part-of: infrastructure
+    app.kubernetes.io/component: certificate-management

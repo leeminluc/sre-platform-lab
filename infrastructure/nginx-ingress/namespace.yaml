@@ -1,0 +1,15 @@
+---
+# =============================================================================
+# Infrastructure - NGINX Ingress Controller Namespace
+# =============================================================================
+# Production relevance: Dedicated namespaces for infrastructure components
+# provide isolation, enable RBAC scoping, resource quotas, and blast radius
+# reduction. Never install infrastructure into the default namespace.
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress-nginx
+  labels:
+    app.kubernetes.io/part-of: infrastructure
+    app.kubernetes.io/component: ingress-controller

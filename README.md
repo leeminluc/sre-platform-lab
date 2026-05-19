@@ -24,6 +24,7 @@ graph TB
         K3s --> Infra[🛡️ Infrastructure]
         K3s --> Apps[🚀 Applications]
         Infra --> Ingress[NGINX Ingress]
+        Infra --> CertMgr[🔒 cert-manager]
         Apps --> Frontend[Frontend Service]
     end
 
@@ -126,15 +127,32 @@ sre-platform-lab/
 │
 ├── infrastructure/                     # Platform-level components
 │   ├── kustomization.yaml             # Aggregates all infra components
-│   └── nginx-ingress/                 # NGINX ingress controller (Milestone 2)
+│   ├── nginx-ingress/                 # NGINX ingress controller (HelmRelease)
+│   │   ├── namespace.yaml             # Dedicated namespace for ingress
+│   │   ├── helm-repository.yaml       # Chart source (official ingress-nginx)
+│   │   ├── helm-release.yaml          # Flux-managed Helm deployment
+│   │   └── kustomization.yaml
+│   └── cert-manager/                  # Certificate management (HelmRelease)
+│       ├── namespace.yaml             # Dedicated namespace for cert-manager
+│       ├── helm-repository.yaml       # Chart source (official Jetstack)
+│       ├── helm-release.yaml          # Flux-managed Helm deployment
+│       ├── cluster-issuer.yaml        # Self-signed CA + CA issuer for dev
 │       └── kustomization.yaml
 │
 ├── apps/                              # Application manifests
 │   └── frontend/                      # Sample nginx application
 │       ├── namespace.yaml             # Dedicated namespace (never use default!)
-│       ├── deployment.yaml            # With probes, resources, rolling updates
+│       ├── deployment.yaml            # Probes, resources, anti-affinity, rolling updates
 │       ├── service.yaml               # ClusterIP service (ingress handles external)
-│       └── kustomization.yaml         # Kustomize resource list
+│       ├── ingress.yaml               # TLS ingress with cert-manager annotation
+│       ├── hpa.yaml                   # Horizontal Pod Autoscaler (CPU 70%)
+│       ├── pdb.yaml                   # PodDisruptionBudget (minAvailable: 1)
+│       ├── networkpolicy.yaml         # Default-deny + allow-from-ingress + egress
+│       ├── kustomization.yaml         # Base resource list
+│       └── overlays/                  # Environment-specific overrides
+│           ├── dev/                   # 2 replicas, lower limits, self-signed TLS
+│           ├── staging/               # 3 replicas, higher limits, PDB minAvailable: 2
+│           └── prod/                  # 5 replicas, required anti-affinity, PDB minAvailable: 3
 │
 ├── monitoring/                         # Prometheus + Grafana (Milestone 3)
 ├── runbooks/                           # Operational runbooks (Milestone 4)
@@ -157,7 +175,8 @@ sre-platform-lab/
 | **Kubernetes** | k3s v1.33.11 | CNCF-certified K8s, single binary, production features |
 | **GitOps** | FluxCD v2 | Declarative cluster reconciliation from Git |
 | **IaC** | Terraform >= 1.0 | Infrastructure provisioning with modular composition |
-| **Ingress** | NGINX (planned) | HTTP traffic routing with rich annotations |
+| **Ingress** | NGINX Ingress | HTTP traffic routing, TLS termination, HelmRelease-managed |
+| **TLS** | cert-manager | Automatic certificate provisioning and renewal |
 | **Monitoring** | Prometheus + Grafana (planned) | Metrics collection and visualization |
 | **Secrets** | External Secrets + Vault (planned) | Secure secrets management |
 
@@ -181,14 +200,14 @@ Progress of production SRE practices implemented across milestones:
 - [x] Drift detection (Flux reverts manual changes)
 - [x] Security-conscious .gitignore
 
-### Milestone 2 — Platform (Next)
-- [ ] NGINX ingress controller via HelmRelease
-- [ ] cert-manager for automatic TLS
-- [ ] Horizontal Pod Autoscaler (HPA)
-- [ ] PodDisruptionBudgets (PDB)
-- [ ] Anti-affinity rules for pod distribution
-- [ ] Network policies
-- [ ] Kustomize overlays for environment promotion
+### Milestone 2 — Platform ✅
+- [x] NGINX ingress controller via HelmRelease
+- [x] cert-manager for automatic TLS
+- [x] Horizontal Pod Autoscaler (HPA)
+- [x] PodDisruptionBudgets (PDB)
+- [x] Anti-affinity rules for pod distribution
+- [x] Network policies (default-deny + allow-specific)
+- [x] Kustomize overlays for environment promotion (dev/staging/prod)
 
 ### Milestone 3 — Observability
 - [ ] Prometheus + Grafana stack
@@ -310,8 +329,8 @@ kubectl get deployment frontend -n frontend
 | Milestone | Status | Focus |
 |-----------|--------|-------|
 | **M1: Foundation** | ✅ Complete | Repo structure, k3s, FluxCD, sample app |
-| **M2: Platform** | 🔜 Next | Ingress, cert-manager, HPA, PDB, network policies |
-| **M3: Observability** | 📋 Planned | Prometheus, Grafana, dashboards, alerts |
+| **M2: Platform** | ✅ Complete | Ingress, cert-manager, HPA, PDB, network policies, overlays |
+| **M3: Observability** | 🔜 Next | Prometheus, Grafana, dashboards, alerts |
 | **M4: Operations** | 📋 Planned | Runbooks, postmortems, incident simulation |
 | **M5: Security** | 📋 Planned | Vault, RBAC, PSS, supply chain security |
 | **M6: Advanced** | 📋 Planned | Multi-cluster, chaos engineering, SLO tracking |

@@ -1,0 +1,91 @@
+---
+# =============================================================================
+# Infrastructure - NGINX Ingress Controller HelmRelease
+# =============================================================================
+# Production relevance: HelmRelease is FluxCD's way of managing Helm charts
+# through GitOps. Instead of running `helm install`, Flux reconciles this
+# resource against the cluster state.
+#
+# Why HelmRelease over raw YAML:
+#   1. Version pinning — reproducible deployments
+#   2. Values management — same as `helm install --set` but in Git
+#   3. Automatic upgrades — Flux detects chart version changes
+#   4. Rollback — revert the Git commit, Flux reverts the release
+#   5. Drift detection — manual `helm upgrade` changes get reverted
+#
+# Key configuration decisions:
+#   - DaemonSet mode (not Deployment) for single-node k3s
+#   - Resource requests/limits — prevent resource starvation
+#   - HostNetwork disabled — use NodePort (k3s default)
+#   - Metrics enabled — for future Prometheus monitoring
+# =============================================================================
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: ingress-nginx
+  namespace: ingress-nginx
+spec:
+  # Reconcile interval — how often Flux checks for drift
+  interval: 5m0s
+  # Chart source reference
+  chart:
+    spec:
+      chart: ingress-nginx
+      version: "4.12.1"
+      sourceRef:
+        kind: HelmRepository
+        name: ingress-nginx
+        namespace: flux-system
+      # Verify chart integrity (production best practice)
+      verify: false
+  # Target namespace for the release
+  targetNamespace: ingress-nginx
+  # Install timeout — give the controller time to pull images
+  install:
+    timeout: 5m0s
+    remediation:
+      retries: 3
+  # Upgrade configuration
+  upgrade:
+    timeout: 5m0s
+    remediation:
+      retries: 3
+      strategy: rollback
+  # Rollback configuration
+  rollback:
+    timeout: 5m0s
+    cleanupOnFail: true
+  # Values — equivalent to `helm install --set` or values.yaml
+  values:
+    # Run as DaemonSet for single-node k3s
+    # In production multi-node, use Deployment with HPA
+    controller:
+      kind: DaemonSet
+
+      # Resource management — critical for production
+      resources:
+        requests:
+          cpu: 100m
+          memory: 90Mi
+        limits:
+          cpu: 500m
+          memory: 256Mi
+
+      # Enable metrics for Prometheus (Milestone 3)
+      metrics:
+        enabled: true
+        serviceMonitor:
+          enabled: false  # Will enable when Prometheus is deployed
+
+      # Publish status on Ingress resources
+      publishService:
+        enabled: true
+
+      # Allow ingress class to be the default
+      ingressClassResource:
+        default: true
+
+    # Service configuration for k3s
+    # k3s uses klipper-lb or NodePort by default
+    service:
+      type: LoadBalancer

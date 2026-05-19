@@ -1,0 +1,22 @@
+---
+# =============================================================================
+# Infrastructure - cert-manager
+# =============================================================================
+# cert-manager automates TLS certificate provisioning and renewal.
+# Components:
+#   1. HelmRelease — installs the cert-manager controller
+#   2. ClusterIssuer — defines how certificates are issued
+#   3. CA Certificate — self-signed root for dev; Let's Encrypt for prod
+#
+# Dependency chain:
+#   HelmRelease installs cert-manager → CRDs become available →
+#   ClusterIssuer/Certificate resources are reconciled
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - helm-repository.yaml
+  - helm-release.yaml
+  - cluster-issuer.yaml

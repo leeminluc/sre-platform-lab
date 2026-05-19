@@ -1,0 +1,21 @@
+---
+# =============================================================================
+# Infrastructure - cert-manager Helm Repository
+# =============================================================================
+# Production relevance: cert-manager is the de facto standard for Kubernetes
+# certificate management. It automates:
+#   - Certificate issuance from Let's Encrypt, Vault, or private CAs
+#   - Certificate renewal before expiry
+#   - TLS secret injection into Ingress resources
+#
+# In production, you would verify the chart signature (cosign) for supply
+# chain security. For now, we trust the official Jetstack repository.
+# =============================================================================
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: cert-manager
+  namespace: flux-system
+spec:
+  url: https://charts.jetstack.io
+  interval: 1h0m0s

@@ -1,0 +1,68 @@
+---
+# =============================================================================
+# Frontend - Staging Overlay
+# =============================================================================
+# Staging overlay: Mirrors production but with fewer resources.
+# Used for pre-production validation and integration testing.
+#
+# Differences from base:
+#   - 3 replicas (vs 2 dev, 5 prod)
+#   - Production-level resources
+#   - HPA maxReplicas: 5
+#   - Self-signed TLS (staging domain)
+#   - Higher PDB minAvailable (2)
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../..
+
+patches:
+  # Staging runs 3 replicas
+  - target:
+      kind: Deployment
+      name: frontend
+    patch: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: frontend
+      spec:
+        replicas: 3
+        template:
+          spec:
+            containers:
+              - name: nginx
+                resources:
+                  requests:
+                    cpu: 100m
+                    memory: 128Mi
+                  limits:
+                    cpu: 500m
+                    memory: 256Mi
+
+  # Staging HPA
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: frontend
+    patch: |
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: frontend
+      spec:
+        minReplicas: 3
+        maxReplicas: 5
+
+  # Staging PDB — keep 2 available
+  - target:
+      kind: PodDisruptionBudget
+      name: frontend
+    patch: |
+      apiVersion: policy/v1
+      kind: PodDisruptionBudget
+      metadata:
+        name: frontend
+      spec:
+        minAvailable: 2

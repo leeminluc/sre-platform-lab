@@ -1,3 +1,4 @@
+---
 # =============================================================================
 # Infrastructure - Top-Level Kustomization
 # =============================================================================
@@ -5,15 +6,16 @@
 # FluxCD applies this via the infrastructure Kustomization resource.
 #
 # Reconciliation order matters:
-#   1. CRDs must exist before controllers that use them
-#   2. Ingress controller before applications that need ingress
-#   3. cert-manager before any TLS-terminated ingress
+#   1. NGINX ingress controller — must be running before apps create Ingress resources
+#   2. cert-manager — must be ready before TLS-terminated ingress (Milestone 2)
+#   3. External Secrets / Vault — must be ready before apps need secrets (Milestone 5)
 #
-# Current components: nginx-ingress (placeholder for Milestone 2)
-# Future components: cert-manager, external-secrets, monitoring stack
+# Each component lives in its own directory with its own kustomization,
+# making it easy to enable/disable components per environment.
 # =============================================================================
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-resources: []
-  # - nginx-ingress/  # Enabled in Milestone 2
+resources:
+  - nginx-ingress/
+  - cert-manager/

@@ -1,0 +1,92 @@
+---
+# =============================================================================
+# Frontend - Production Overlay
+# =============================================================================
+# Production overlay: Maximum availability, higher resources, strict constraints.
+# This is the real deal — what runs in production serving real users.
+#
+# Differences from base:
+#   - 5 replicas (high availability across multiple nodes)
+#   - Higher resource requests/limits (right-sized for production traffic)
+#   - HPA: min 5, max 10 (handle production traffic spikes)
+#   - PDB: minAvailable 3 (survive node failures + rolling updates)
+#   - Required pod anti-affinity (enforce spreading across nodes)
+#   - Let's Encrypt TLS (production certificates)
+#
+# NOTE: This overlay is a template. In a real production environment:
+#   - The ingress host would be a real domain
+#   - The ClusterIssuer would be letsencrypt-prod
+#   - Resources would be right-sized based on metrics
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../..
+
+patches:
+  # Production: 5 replicas with higher resources
+  - target:
+      kind: Deployment
+      name: frontend
+    patch: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: frontend
+      spec:
+        replicas: 5
+        template:
+          spec:
+            containers:
+              - name: nginx
+                resources:
+                  requests:
+                    cpu: 100m
+                    memory: 128Mi
+                  limits:
+                    cpu: 500m
+                    memory: 256Mi
+            # Production uses REQUIRED anti-affinity — enforce spreading
+            affinity:
+              podAntiAffinity:
+                requiredDuringSchedulingIgnoredDuringExecution:
+                  - labelSelector:
+                      matchExpressions:
+                        - key: app.kubernetes.io/name
+                          operator: In
+                          values:
+                            - frontend
+                    topologyKey: kubernetes.io/hostname
+
+  # Production HPA: 5-10 replicas, scale on 60% CPU (more headroom)
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: frontend
+    patch: |
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: frontend
+      spec:
+        minReplicas: 5
+        maxReplicas: 10
+        metrics:
+          - type: Resource
+            resource:
+              name: cpu
+              target:
+                type: Utilization
+                averageUtilization: 60
+
+  # Production PDB: at least 3 pods must remain available
+  - target:
+      kind: PodDisruptionBudget
+      name: frontend
+    patch: |
+      apiVersion: policy/v1
+      kind: PodDisruptionBudget
+      metadata:
+        name: frontend
+      spec:
+        minAvailable: 3

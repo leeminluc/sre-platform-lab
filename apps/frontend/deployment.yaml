@@ -110,3 +110,27 @@ spec:
             timeoutSeconds: 3         # Tighter timeout for traffic routing
             failureThreshold: 3       # Remove from endpoints after 3 failures
             successThreshold: 1       # One success = ready to serve
+
+      # ── Pod Anti-Affinity ──────────────────────────────────────────────
+      # Production relevance: Prevents all replicas from landing on the
+      # same node. If a node fails, at least some replicas survive.
+      #
+      # preferredDuringSchedulingIgnoredDuringExecution:
+      #   - Soft constraint — scheduler tries but won't fail if impossible
+      #   - On single-node k3s, both pods will still schedule (soft preference)
+      #   - On multi-node clusters, pods spread across nodes automatically
+      #
+      # In production with 3+ nodes, use requiredDuringScheduling for critical
+      # services to enforce spreading. Use preferred for best-effort.
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - frontend
+                topologyKey: kubernetes.io/hostname
