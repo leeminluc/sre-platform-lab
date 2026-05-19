@@ -36,8 +36,10 @@ spec:
         kind: HelmRepository
         name: ingress-nginx
         namespace: flux-system
-      # Verify chart integrity (production best practice)
-      verify: false
+      # Chart verification (cosign) — not configured yet
+      # In production, use: verify: { provider: cosign }
+      # verify:
+      #   provider: cosign
   # Target namespace for the release
   targetNamespace: ingress-nginx
   # Install timeout — give the controller time to pull images

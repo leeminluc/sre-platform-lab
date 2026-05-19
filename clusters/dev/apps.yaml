@@ -12,7 +12,7 @@
 #   - Certificates failing because cert-manager isn't ready
 #
 # The dependsOn field creates a reconciliation DAG (directed acyclic graph):
-#   flux-system → infrastructure → infrastructure-configs → apps
+#   flux-system → infrastructure-controllers → infrastructure-configs → apps
 #
 # This is the production pattern. Every mature GitOps setup uses dependency
 # ordering. Without it, you're relying on luck and retry loops.

@@ -1,12 +1,12 @@
 ---
 # =============================================================================
-# Dev Cluster - Infrastructure Kustomization
+# Dev Cluster - Infrastructure Controllers Kustomization
 # =============================================================================
 # Production relevance: This Flux Kustomization tells Flux to watch the
 # `infrastructure/` directory and apply those manifests to the cluster.
 #
 # Key design decisions:
-#   1. Infrastructure is reconciled BEFORE applications (see dependsOn below)
+#   1. Controllers are reconciled BEFORE configs and applications
 #   2. Reuses the flux-system GitRepository source (already has auth from bootstrap)
 #   3. 5-minute reconciliation interval (balance between drift detection and API load)
 #   4. Health checks ensure infrastructure is ready before proceeding
@@ -19,7 +19,7 @@
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: infrastructure
+  name: infrastructure-controllers
   namespace: flux-system
 spec:
   # Reconcile every 5 minutes — detects drift within 5 minutes
@@ -28,7 +28,7 @@ spec:
   sourceRef:
     kind: GitRepository
     name: flux-system
-  # Path within the Git repository to find infrastructure manifests
+  # Path within the Git repository to find controller manifests
   path: ./infrastructure
   # Prune removes resources that are no longer in Git — prevents drift
   prune: true

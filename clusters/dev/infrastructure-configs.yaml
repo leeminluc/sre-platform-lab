@@ -11,7 +11,7 @@
 #   4. This Kustomization uses those CRDs (ClusterIssuer, Certificate)
 #
 # Dependency chain:
-#   flux-system → infrastructure (controllers) → infrastructure-configs → apps
+#   flux-system → infrastructure-controllers → infrastructure-configs → apps
 #
 # This is the standard FluxCD pattern for CRD-dependent resources.
 # You'll see the same pattern in production for:
@@ -36,7 +36,7 @@ spec:
   # CRITICAL: Wait for controllers (cert-manager, etc.) to be healthy
   # before applying configs that use their CRDs
   dependsOn:
-    - name: infrastructure
+    - name: infrastructure-controllers
   prune: true
   wait: true
   timeout: 5m0s
