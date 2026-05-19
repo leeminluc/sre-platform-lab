@@ -85,24 +85,35 @@ FluxCD supports dependency ordering between Kustomizations. This prevents race c
 
 ```mermaid
 graph LR
-    FluxSystem[flux-system] --> Infra[infrastructure]
-    Infra --> Apps[apps]
+    FluxSystem[flux-system] --> InfraCtrls[infrastructure-controllers]
+    InfraCtrls --> InfraConfigs[infrastructure-configs]
+    InfraConfigs --> Apps[apps]
     
     FluxSystem -->|reconciles| FluxNS[Flux Controllers]
-    Infra -->|reconciles| IngressCtrl[NGINX Ingress]
-    Infra -->|reconciles| CertMgr[cert-manager]
+    InfraCtrls -->|reconciles| IngressCtrl[NGINX Ingress]
+    InfraCtrls -->|reconciles| CertMgrCtrl[cert-manager controller]
+    InfraConfigs -->|reconciles| CertMgrConfig[ClusterIssuer / Certificates]
     Apps -->|reconciles| FrontendNS[frontend namespace]
     Apps -->|reconciles| FrontendDeploy[frontend deployment]
     
     style FluxSystem fill:#f3e5f5
-    style Infra fill:#fff3e0
+    style InfraCtrls fill:#fff3e0
+    style InfraConfigs fill:#ffe0b2
     style Apps fill:#e8f5e9
 ```
 
 **Why this ordering matters:**
 1. `flux-system` must be healthy before anything else works
-2. `infrastructure` (ingress, cert-manager) must be running before apps need them
-3. `apps` are deployed last, ensuring all dependencies are ready
+2. `infrastructure-controllers` (ingress, cert-manager) must be running before configs or apps need them
+3. `infrastructure-configs` applies CRD-dependent resources (ClusterIssuer, Certificate) **after** cert-manager has installed its CRDs
+4. `apps` are deployed last, ensuring all infrastructure and configs are ready
+
+**Why controllers and configs are separate:**
+Flux validates ALL resources in a Kustomization before applying any. Certificate/ClusterIssuer CRDs don't exist until cert-manager installs them. If we put the controller and its CRD-dependent resources in the same Kustomization, Flux's dry-run validation fails with "no matches for kind ClusterIssuer."
+
+This is the standard FluxCD pattern for any operator that installs CRDs:
+- **controllers/** → HelmRelease + namespace + HelmRepository (creates CRDs)
+- **configs/** → ClusterIssuer, Certificate, PrometheusRule, etc. (uses CRDs)
 
 Without `dependsOn`, apps could be deployed before the ingress controller exists, causing failing Ingress resources and confusing errors.
 
@@ -126,11 +137,15 @@ graph TB
         
         ClustersDir --> DevCluster[dev/]
         DevCluster ├── FluxSys[flux-system/]
-        DevCluster ├── InfraYaml[infrastructure.yaml]
+        DevCluster ├── InfraCtrlsYaml[infrastructure-controllers.yaml]
+        DevCluster ├── InfraConfigsYaml[infrastructure-configs.yaml]
         DevCluster └── AppsYaml[apps.yaml]
         
-        InfraDir ├── NginxIngress[nginx-ingress/]
-        InfraDir ├── CertManager[cert-manager/]
+        InfraDir --> Controllers[controllers/]
+        InfraDir --> Configs[configs/]
+        Controllers ├── NginxIngress[nginx-ingress/]
+        Controllers ├── CertManagerCtrl[cert-manager/]
+        Configs ├── CertManagerConfig[cert-manager/]
         
         AppsDir ├── FrontendApp[frontend/]
         FrontendApp ├── Overlays[overlays/]
@@ -144,11 +159,13 @@ graph TB
     end
 
     FluxSys -->|creates| FluxNS
-    InfraYaml -->|reconciles| IngressNS
-    InfraYaml -->|reconciles| CertNS
+    InfraCtrlsYaml -->|reconciles| IngressNS
+    InfraCtrlsYaml -->|reconciles| CertNS
+    InfraConfigsYaml -->|reconciles CRD resources| CertNS
     AppsYaml -->|reconciles| FrontendNS
     NginxIngress -->|deploys to| IngressNS
-    CertManager -->|deploys to| CertNS
+    CertManagerCtrl -->|installs CRDs| CertNS
+    CertManagerConfig -->|creates ClusterIssuer| CertNS
     FrontendApp -->|deploys to| FrontendNS
 
     style Root fill:#fafafa

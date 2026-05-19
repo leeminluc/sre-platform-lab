@@ -122,22 +122,29 @@ sre-platform-lab/
 │       │   ├── gotk-components.yaml   # Flux controller definitions
 │       │   ├── gotk-sync.yaml         # GitRepository + Kustomization sync
 │       │   └── kustomization.yaml     # Flux system resource list
-│       ├── infrastructure.yaml        # Flux Kustomization → infrastructure/
-│       └── apps.yaml                  # Flux Kustomization → apps/ (dependsOn: infrastructure)
+│       ├── infrastructure-controllers.yaml  # Flux Kustomization → infrastructure/ (controllers)
+│       ├── infrastructure-configs.yaml      # Flux Kustomization → infrastructure/configs/ (dependsOn: infrastructure-controllers)
+│       └── apps.yaml                       # Flux Kustomization → apps/ (dependsOn: infrastructure-configs)
 │
 ├── infrastructure/                     # Platform-level components
-│   ├── kustomization.yaml             # Aggregates all infra components
-│   ├── nginx-ingress/                 # NGINX ingress controller (HelmRelease)
-│   │   ├── namespace.yaml             # Dedicated namespace for ingress
-│   │   ├── helm-repository.yaml       # Chart source (official ingress-nginx)
-│   │   ├── helm-release.yaml          # Flux-managed Helm deployment
-│   │   └── kustomization.yaml
-│   └── cert-manager/                  # Certificate management (HelmRelease)
-│       ├── namespace.yaml             # Dedicated namespace for cert-manager
-│       ├── helm-repository.yaml       # Chart source (official Jetstack)
-│       ├── helm-release.yaml          # Flux-managed Helm deployment
-│       ├── cluster-issuer.yaml        # Self-signed CA + CA issuer for dev
-│       └── kustomization.yaml
+│   ├── kustomization.yaml             # Aggregates controllers/ subdirectory only
+│   ├── controllers/                   # Controller deployments (create CRDs)
+│   │   ├── kustomization.yaml         # Aggregates all controllers
+│   │   ├── nginx-ingress/             # NGINX ingress controller (HelmRelease)
+│   │   │   ├── namespace.yaml         # Dedicated namespace for ingress
+│   │   │   ├── helm-repository.yaml   # Chart source (official ingress-nginx)
+│   │   │   ├── helm-release.yaml      # Flux-managed Helm deployment
+│   │   │   └── kustomization.yaml
+│   │   └── cert-manager/             # Certificate management (HelmRelease)
+│   │       ├── namespace.yaml         # Dedicated namespace for cert-manager
+│   │       ├── helm-repository.yaml   # Chart source (official Jetstack)
+│   │       ├── helm-release.yaml      # Flux-managed Helm deployment
+│   │       └── kustomization.yaml
+│   └── configs/                       # CRD-dependent configs (require controllers first)
+│       ├── kustomization.yaml         # Aggregates all configs
+│       └── cert-manager/             # cert-manager configs (post-install)
+│           ├── cluster-issuer.yaml    # Self-signed CA + CA issuer for dev
+│           └── kustomization.yaml
 │
 ├── apps/                              # Application manifests
 │   └── frontend/                      # Sample nginx application
@@ -196,7 +203,8 @@ Progress of production SRE practices implemented across milestones:
 - [x] Rolling update strategy
 - [x] Kubernetes recommended labels
 - [x] Kustomize for manifest composition
-- [x] Dependency-ordered reconciliation (flux-system → infra → apps)
+- [x] Dependency-ordered reconciliation (flux-system → infrastructure-controllers → infrastructure-configs → apps)
+- [x] CRD dependency separation (controllers vs. configs — prevents chicken-and-egg validation errors)
 - [x] Drift detection (Flux reverts manual changes)
 - [x] Security-conscious .gitignore
 
