@@ -1,0 +1,21 @@
+---
+# =============================================================================
+# Frontend Application - Namespace
+# =============================================================================
+# Production relevance: Namespaces provide:
+#   1. Resource isolation — quotas and limits are per-namespace
+#   2. Access control — RBAC policies can target namespaces
+#   3. Network policies — traffic rules are namespace-scoped
+#   4. Blast radius reduction — a failing app doesn't affect others' resources
+#
+# Anti-pattern: Deploying everything in `default` namespace. This prevents
+# any of the above controls and signals a lack of operational maturity.
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: frontend
+  labels:
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/part-of: sre-platform-lab
+    app.kubernetes.io/managed-by: flux

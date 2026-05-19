@@ -1,0 +1,51 @@
+---
+# =============================================================================
+# Dev Cluster - Infrastructure Kustomization
+# =============================================================================
+# Production relevance: This Flux Kustomization tells Flux to watch the
+# `infrastructure/` directory and apply those manifests to the cluster.
+#
+# Key design decisions:
+#   1. Infrastructure is reconciled BEFORE applications (see dependsOn below)
+#   2. ServiceAccount in flux-system namespace for least-privilege access
+#   3. 5-minute reconciliation interval (balance between drift detection and API load)
+#   4. Health checks ensure infrastructure is ready before proceeding
+#
+# In production, you would also:
+#   - Add image verification (cosign) for supply chain security
+#   - Use path prefixes to separate CRDs from controllers
+#   - Set stricter retry intervals with backoff
+# =============================================================================
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: infrastructure
+  namespace: flux-system
+spec:
+  interval: 5m0s
+  ref:
+    branch: main
+  url: https://github.com/YOUR_GITHUB_USERNAME/sre-platform-lab
+  # In production, use SSH or token-based auth:
+  # secretRef:
+  #   name: flux-system
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: infrastructure
+  namespace: flux-system
+spec:
+  # Reconcile every 5 minutes — detects drift within 5 minutes
+  interval: 5m0s
+  sourceRef:
+    kind: GitRepository
+    name: infrastructure
+  # Path within the Git repository to find infrastructure manifests
+  path: ./infrastructure
+  # Prune removes resources that are no longer in Git — prevents drift
+  prune: true
+  # Wait for infrastructure to be healthy before marking reconciliation done
+  wait: true
+  # Timeout for health checks — if infrastructure can't become healthy in 5m, fail
+  timeout: 5m0s

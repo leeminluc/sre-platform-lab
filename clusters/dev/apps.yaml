@@ -1,0 +1,51 @@
+---
+# =============================================================================
+# Dev Cluster - Applications Kustomization
+# =============================================================================
+# Production relevance: This Flux Kustomization deploys application workloads.
+# The critical design decision here is the `dependsOn` field:
+#
+#   Applications MUST NOT be deployed before infrastructure is ready.
+#   Without this dependency, you'd see race conditions like:
+#   - Pods scheduling before ingress controller is running
+#   - Applications failing because CRDs aren't installed yet
+#   - Certificates failing because cert-manager isn't ready
+#
+# The dependsOn field creates a reconciliation DAG (directed acyclic graph):
+#   flux-system → infrastructure → apps
+#
+# This is the production pattern. Every mature GitOps setup uses dependency
+# ordering. Without it, you're relying on luck and retry loops.
+# =============================================================================
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: apps
+  namespace: flux-system
+spec:
+  interval: 5m0s
+  ref:
+    branch: main
+  url: https://github.com/YOUR_GITHUB_USERNAME/sre-platform-lab
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: apps
+  namespace: flux-system
+spec:
+  # Reconcile every 5 minutes
+  interval: 5m0s
+  sourceRef:
+    kind: GitRepository
+    name: apps
+  # Path to application manifests
+  path: ./apps
+  # CRITICAL: Wait for infrastructure before deploying apps
+  # This prevents race conditions between infra and app controllers
+  dependsOn:
+    - name: infrastructure
+  # Prune removes resources that are no longer in Git
+  prune: true
+  wait: true
+  timeout: 5m0s

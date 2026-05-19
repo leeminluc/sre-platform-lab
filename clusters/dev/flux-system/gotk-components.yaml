@@ -1,0 +1,24 @@
+# =============================================================================
+# Flux System - Placeholder for Auto-Generated Bootstrap Manifests
+# =============================================================================
+# IMPORTANT: This file is a PLACEHOLDER. When you run `flux bootstrap github`,
+# Flux will auto-generate the following files in this directory:
+#
+#   - gotk-components.yaml   (Flux controllers: source-controller, kustomize-controller, etc.)
+#   - gotk-sync.yaml         (GitRepository + Kustomization pointing to this repo)
+#   - kustomization.yaml     (Kustomize resource list for flux-system)
+#
+# These auto-generated manifests SHOULD be committed to Git because:
+#   1. They make the Flux installation declarative and reproducible
+#   2. They enable disaster recovery (rebuild cluster from Git)
+#   3. They provide audit trail of Flux controller versions
+#   4. They allow GitOps reconciliation of Flux itself
+#
+# Production relevance: Flux bootstrapping follows the "GitOps all the way down"
+# principle. Even the GitOps operator is managed via GitOps. This eliminates
+# snowflake cluster configurations and enables full cluster reconstruction
+# from a single Git repository.
+# =============================================================================
+
+# This placeholder will be replaced by `flux bootstrap github` output.
+# See docs/flux-bootstrap.md for step-by-step instructions.

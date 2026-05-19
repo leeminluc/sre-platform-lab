@@ -1,0 +1,38 @@
+# =============================================================================
+# Frontend Application - Kustomization Resource List
+# =============================================================================
+# Production relevance: Kustomize is the native Kubernetes configuration
+# management tool. Unlike Helm, it doesn't template — it overlays.
+#
+# Advantages for GitOps:
+#   1. No templating engine = less runtime surprise
+#   2. Plain YAML that `kubectl apply` understands natively
+#   3. Overlays enable environment-specific config without duplication
+#   4. FluxCD has first-class Kustomize support
+#
+# Future overlay structure for environment promotion:
+#   apps/frontend/
+#   ├── base/                    (shared manifests)
+#   │   ├── namespace.yaml
+#   │   ├── deployment.yaml
+#   │   ├── service.yaml
+#   │   └── kustomization.yaml
+#   └── overlays/
+#       ├── dev/                 (dev-specific patches)
+#       ├── staging/             (staging-specific patches)
+#       └── prod/                (prod-specific patches)
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: frontend
+
+resources:
+  - namespace.yaml
+  - deployment.yaml
+  - service.yaml
+
+# Common labels applied to all resources — ensures consistency
+# and enables Flux/monitoring tools to query by label
+commonLabels:
+  app.kubernetes.io/part-of: sre-platform-lab
+  app.kubernetes.io/managed-by: flux

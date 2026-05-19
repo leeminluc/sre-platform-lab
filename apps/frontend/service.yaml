@@ -1,0 +1,39 @@
+---
+# =============================================================================
+# Frontend Application - Service
+# =============================================================================
+# Production relevance: A Service provides stable networking for a set of pods.
+# Key design decisions:
+#
+# 1. ClusterIP type (not LoadBalancer or NodePort)
+#    - In production, ingress controllers handle external traffic routing
+#    - ClusterIP keeps the service internal-only, following least-exposure principle
+#    - LoadBalancer type creates cloud resources per-service (expensive, no consolidation)
+#
+# 2. Named port (http, not just 80)
+#    - Named ports enable port references in Ingress and NetworkPolicy
+#    - Makes manifests self-documenting and refactoring-safe
+#
+# 3. Selector matches pod labels exactly
+#    - The service endpoints are determined by label matching
+#    - Mismatched selectors = no endpoints = no traffic (common rookie mistake)
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: frontend
+  labels:
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/component: web-server
+    app.kubernetes.io/part-of: sre-platform-lab
+    app.kubernetes.io/managed-by: flux
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

@@ -1,0 +1,112 @@
+---
+# =============================================================================
+# Frontend Application - Deployment
+# =============================================================================
+# Production relevance: This deployment demonstrates several production-grade
+# practices that separate senior engineers from juniors:
+#
+# 1. RESOURCE REQUESTS AND LIMITS (non-negotiable in production)
+#    - requests: What the scheduler guarantees (used for node placement)
+#    - limits: Hard ceiling (prevents noisy neighbor, enables OOM kill detection)
+#    - Without these, a runaway pod can starve neighbors and crash the node.
+#
+# 2. LIVENESS PROBE
+#    - Detects deadlocked/unhealthy processes → kubelet restarts the pod
+#    - Without this, a zombie process serves errors forever
+#    - CRITICAL: initialDelaySeconds must be > startup time to avoid kill loops
+#
+# 3. READINESS PROBE
+#    - Controls when a pod receives traffic via Services
+#    - A pod that fails readiness is removed from Service endpoints
+#    - This enables zero-downtime rolling updates
+#
+# 4. LABELS (Kubernetes Recommended Labels)
+#    - app.kubernetes.io/* labels are the standard for resource ownership
+#    - Used by Flux, monitoring, and troubleshooting tools
+#
+# 5. ROLLING UPDATE STRATEGY
+#    - maxSurge: How many extra pods during update (controls speed)
+#    - maxUnavailable: How many pods can be down (controls availability)
+#    - These values are application-specific — tune based on SLOs
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: frontend
+  labels:
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/component: web-server
+    app.kubernetes.io/part-of: sre-platform-lab
+    app.kubernetes.io/managed-by: flux
+spec:
+  replicas: 2
+  # Rolling update strategy — balance speed with availability
+  # maxSurge=1: Create one new pod before terminating old
+  # maxUnavailable=0: Never drop below desired replica count
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: frontend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: frontend
+        app.kubernetes.io/component: web-server
+        app.kubernetes.io/part-of: sre-platform-lab
+        app.kubernetes.io/managed-by: flux
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.27-alpine
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+
+          # ── Resource Management ──────────────────────────────────────
+          # These values are intentionally conservative for a lab.
+          # In production, you'd right-size these based on metrics:
+          #   - Use Vertical Pod Autoscaler recommendations
+          #   - Review CPU throttling vs. memory OOMKilled events
+          #   - Set limits to ~150% of observed peak usage
+          resources:
+            requests:
+              cpu: 50m      # 5% of a CPU core — minimum guaranteed
+              memory: 64Mi  # Guaranteed memory allocation
+            limits:
+              cpu: 200m     # 20% of a CPU core — max allowed before throttling
+              memory: 128Mi # Max memory — pod is OOMKilled if exceeded
+
+          # ── Liveness Probe ───────────────────────────────────────────
+          # Restarts the pod if it becomes unresponsive.
+          # WARNING: Never set this to the same endpoint as readiness.
+          # Liveness failures = pod restart. Readiness failures = traffic removal.
+          # Using the same check can cause cascading restarts.
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10  # Wait for container startup
+            periodSeconds: 15         # Check every 15s
+            timeoutSeconds: 5         # Fail if no response in 5s
+            failureThreshold: 3       # Restart after 3 consecutive failures
+            successThreshold: 1       # One success resets the counter
+
+          # ── Readiness Probe ──────────────────────────────────────────
+          # Controls whether the pod receives traffic via Services.
+          # A failing readiness probe removes the pod from endpoints but
+          # does NOT restart it. This is key for graceful degradation.
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5    # Faster than liveness — check early
+            periodSeconds: 10         # Check more frequently than liveness
+            timeoutSeconds: 3         # Tighter timeout for traffic routing
+            failureThreshold: 3       # Remove from endpoints after 3 failures
+            successThreshold: 1       # One success = ready to serve
