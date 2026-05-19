@@ -1,0 +1,24 @@
+---
+# =============================================================================
+# Infrastructure - cert-manager Controller
+# =============================================================================
+# cert-manager automates TLS certificate provisioning and renewal.
+# This Kustomization installs ONLY the controller (HelmRelease) and its
+# prerequisites (namespace, HelmRepository). It does NOT include
+# ClusterIssuer/Certificate resources — those live in configs/cert-manager/.
+#
+# Why? Flux validates ALL resources in a Kustomization before applying any.
+# The Certificate CRD doesn't exist until cert-manager installs it.
+# Separating controller from config avoids the chicken-and-egg problem.
+#
+# Dependency chain:
+#   controllers/cert-manager (installs CRDs) →
+#   configs/cert-manager (uses CRDs for ClusterIssuer/Certificate)
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - helm-repository.yaml
+  - helm-release.yaml

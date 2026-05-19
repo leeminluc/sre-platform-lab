@@ -1,21 +1,22 @@
 ---
 # =============================================================================
-# Infrastructure - Top-Level Kustomization
+# Infrastructure - Top-Level Aggregation
 # =============================================================================
-# This kustomization aggregates all infrastructure components.
-# FluxCD applies this via the infrastructure Kustomization resource.
+# This Kustomization points to the controllers/ subdirectory only.
+# Configs are handled by a SEPARATE Flux Kustomization (infrastructure-configs)
+# because they depend on CRDs that controllers install.
 #
-# Reconciliation order matters:
-#   1. NGINX ingress controller — must be running before apps create Ingress resources
-#   2. cert-manager — must be ready before TLS-terminated ingress (Milestone 2)
-#   3. External Secrets / Vault — must be ready before apps need secrets (Milestone 5)
+# Flux dependency chain:
+#   flux-system → infrastructure (this, controllers) → infrastructure-configs → apps
 #
-# Each component lives in its own directory with its own kustomization,
-# making it easy to enable/disable components per environment.
+# Why not reference configs/ here too?
+#   If we did, Kustomize would try to build configs/ and controllers/ together.
+#   Flux validates all resources at once — the Certificate CRD wouldn't exist yet.
+#   By making them separate Flux Kustomizations, Flux applies controllers first,
+#   waits for health, then applies configs.
 # =============================================================================
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - nginx-ingress/
-  - cert-manager/
+  - controllers/

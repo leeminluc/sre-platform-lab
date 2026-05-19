@@ -1,0 +1,42 @@
+---
+# =============================================================================
+# Dev Cluster - Infrastructure Configs Kustomization
+# =============================================================================
+# This Flux Kustomization applies CRD-dependent infrastructure resources.
+# It is SEPARATE from the infrastructure Kustomization because:
+#
+#   1. Flux validates ALL resources in a Kustomization before applying any
+#   2. Certificate/ClusterIssuer CRDs don't exist until cert-manager installs them
+#   3. The infrastructure Kustomization installs cert-manager (creates CRDs)
+#   4. This Kustomization uses those CRDs (ClusterIssuer, Certificate)
+#
+# Dependency chain:
+#   flux-system → infrastructure (controllers) → infrastructure-configs → apps
+#
+# This is the standard FluxCD pattern for CRD-dependent resources.
+# You'll see the same pattern in production for:
+#   - PrometheusRule after Prometheus Operator
+#   - ExternalSecret after External Secrets Operator
+#   - Gateway/HTTPRoute after Gateway API
+# =============================================================================
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: infrastructure-configs
+  namespace: flux-system
+spec:
+  # Reconcile every 5 minutes
+  interval: 5m0s
+  # Reference the GitRepository created by flux bootstrap
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  # Path to CRD-dependent infrastructure configs
+  path: ./infrastructure/configs
+  # CRITICAL: Wait for controllers (cert-manager, etc.) to be healthy
+  # before applying configs that use their CRDs
+  dependsOn:
+    - name: infrastructure
+  prune: true
+  wait: true
+  timeout: 5m0s

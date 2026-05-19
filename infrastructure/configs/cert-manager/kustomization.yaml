@@ -1,0 +1,21 @@
+---
+# =============================================================================
+# Infrastructure - cert-manager Configs (Post-Install)
+# =============================================================================
+# This Kustomization contains resources that depend on cert-manager CRDs:
+#   - ClusterIssuer (defines how certificates are issued)
+#   - CA Certificate (self-signed root for dev)
+#
+# These resources CANNOT be in the same Kustomization as the cert-manager
+# HelmRelease because the CRDs don't exist until cert-manager is installed.
+#
+# Flux dependency chain:
+#   infrastructure (controllers) → infrastructure-configs (this) → apps
+#
+# This is the standard FluxCD pattern for CRD-dependent resources.
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - cluster-issuer.yaml

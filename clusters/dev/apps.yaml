@@ -12,10 +12,15 @@
 #   - Certificates failing because cert-manager isn't ready
 #
 # The dependsOn field creates a reconciliation DAG (directed acyclic graph):
-#   flux-system → infrastructure → apps
+#   flux-system → infrastructure → infrastructure-configs → apps
 #
 # This is the production pattern. Every mature GitOps setup uses dependency
 # ordering. Without it, you're relying on luck and retry loops.
+#
+# Why depend on infrastructure-configs (not just infrastructure)?
+#   - infrastructure installs controllers (creates CRDs)
+#   - infrastructure-configs applies CRD-dependent configs (ClusterIssuer)
+#   - Apps may need TLS certs from cert-manager → need ClusterIssuer ready
 # =============================================================================
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -31,10 +36,11 @@ spec:
     name: flux-system
   # Path to application manifests
   path: ./apps
-  # CRITICAL: Wait for infrastructure before deploying apps
-  # This prevents race conditions between infra and app controllers
+  # CRITICAL: Wait for infrastructure-configs before deploying apps
+  # This ensures ClusterIssuer (and other CRD-dependent configs) are ready
+  # before apps try to use TLS certificates or other infra-dependent features
   dependsOn:
-    - name: infrastructure
+    - name: infrastructure-configs
   # Prune removes resources that are no longer in Git
   prune: true
   wait: true

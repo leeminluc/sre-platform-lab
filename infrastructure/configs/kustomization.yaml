@@ -1,0 +1,25 @@
+---
+# =============================================================================
+# Infrastructure - Configs (CRD-Dependent Resources)
+# =============================================================================
+# This Kustomization aggregates all infrastructure configuration resources
+# that depend on CRDs installed by the controllers.
+#
+# Dependency chain:
+#   infrastructure (controllers) → infrastructure-configs (this) → apps
+#
+# This separation is required because Flux validates ALL resources in a
+# Kustomization before applying any. CRD-dependent resources (like
+# ClusterIssuer, Certificate) can only be applied after the controller
+# that provides those CRDs is installed.
+#
+# Future configs that will go here:
+#   - PrometheusRule / AlertmanagerConfig (after Prometheus operator)
+#   - ExternalSecret / ClusterSecretStore (after ESO)
+#   - Gateway / HTTPRoute (after Gateway API)
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - cert-manager/

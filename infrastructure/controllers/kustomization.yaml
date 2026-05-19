@@ -1,0 +1,22 @@
+---
+# =============================================================================
+# Infrastructure - Controllers (CRD Installers)
+# =============================================================================
+# This Kustomization contains ONLY HelmReleases and their prerequisites
+# (namespaces, HelmRepositories). These controllers install CRDs that
+# later Kustomizations depend on.
+#
+# Why separate controllers from configs?
+#   - Flux validates ALL resources in a Kustomization before applying any
+#   - Certificate/ClusterIssuer CRDs don't exist until cert-manager installs them
+#   - If we put ClusterIssuer in the same Kustomization, dry-run validation fails
+#   - Splitting ensures controllers install CRDs first, then configs use them
+#
+# This is the standard FluxCD pattern for CRD-dependent resources.
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - nginx-ingress/
+  - cert-manager/
