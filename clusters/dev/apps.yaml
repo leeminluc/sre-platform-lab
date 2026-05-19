@@ -17,17 +17,6 @@
 # This is the production pattern. Every mature GitOps setup uses dependency
 # ordering. Without it, you're relying on luck and retry loops.
 # =============================================================================
-apiVersion: source.toolkit.fluxcd.io/v1
-kind: GitRepository
-metadata:
-  name: apps
-  namespace: flux-system
-spec:
-  interval: 5m0s
-  ref:
-    branch: main
-  url: https://github.com/YOUR_GITHUB_USERNAME/sre-platform-lab
----
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -36,9 +25,10 @@ metadata:
 spec:
   # Reconcile every 5 minutes
   interval: 5m0s
+  # Reference the GitRepository created by flux bootstrap (has auth already)
   sourceRef:
     kind: GitRepository
-    name: apps
+    name: flux-system
   # Path to application manifests
   path: ./apps
   # CRITICAL: Wait for infrastructure before deploying apps

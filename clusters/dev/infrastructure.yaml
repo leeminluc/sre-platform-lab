@@ -7,7 +7,7 @@
 #
 # Key design decisions:
 #   1. Infrastructure is reconciled BEFORE applications (see dependsOn below)
-#   2. ServiceAccount in flux-system namespace for least-privilege access
+#   2. Reuses the flux-system GitRepository source (already has auth from bootstrap)
 #   3. 5-minute reconciliation interval (balance between drift detection and API load)
 #   4. Health checks ensure infrastructure is ready before proceeding
 #
@@ -16,20 +16,6 @@
 #   - Use path prefixes to separate CRDs from controllers
 #   - Set stricter retry intervals with backoff
 # =============================================================================
-apiVersion: source.toolkit.fluxcd.io/v1
-kind: GitRepository
-metadata:
-  name: infrastructure
-  namespace: flux-system
-spec:
-  interval: 5m0s
-  ref:
-    branch: main
-  url: https://github.com/YOUR_GITHUB_USERNAME/sre-platform-lab
-  # In production, use SSH or token-based auth:
-  # secretRef:
-  #   name: flux-system
----
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -38,9 +24,10 @@ metadata:
 spec:
   # Reconcile every 5 minutes — detects drift within 5 minutes
   interval: 5m0s
+  # Reference the GitRepository created by flux bootstrap (has auth already)
   sourceRef:
     kind: GitRepository
-    name: infrastructure
+    name: flux-system
   # Path within the Git repository to find infrastructure manifests
   path: ./infrastructure
   # Prune removes resources that are no longer in Git — prevents drift
