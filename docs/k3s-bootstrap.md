@@ -38,7 +38,7 @@ Your Personal Access Token needs these permissions for FluxCD bootstrap:
 # --write-kubeconfig-mode 644 → Allow non-root kubectl access
 # K3S_TOKEN            → Shared secret for node joining (required even for single-node)
 curl -sfL https://get.k3s.io | \
-  INSTALL_K3S_VERSION=v1.30.0+k3s1 \
+  INSTALL_K3S_VERSION=v1.33.11+k3s1 \
   K3S_TOKEN=sre-platform-lab-token \
   sh -s - \
   --disable=traefik \
@@ -65,7 +65,7 @@ sudo k3s kubectl get nodes
 
 # Expected output:
 # NAME              STATUS   ROLES                  AGE   VERSION
-# your-hostname     Ready    control-plane,master   60s   v1.30.0+k3s1
+# your-hostname     Ready    control-plane,master   60s   v1.33.11+k3s1
 ```
 
 ---

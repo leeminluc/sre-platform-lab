@@ -57,7 +57,7 @@ graph TB
 ```bash
 # Install k3s (CNCF-certified Kubernetes)
 curl -sfL https://get.k3s.io | \
-  INSTALL_K3S_VERSION=v1.30.0+k3s1 \
+  INSTALL_K3S_VERSION=v1.33.11+k3s1 \
   K3S_TOKEN=sre-platform-lab-token \
   sh -s - --disable=traefik --write-kubeconfig-mode 644
 
@@ -154,7 +154,7 @@ sre-platform-lab/
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| **Kubernetes** | k3s v1.30.0 | CNCF-certified K8s, single binary, production features |
+| **Kubernetes** | k3s v1.33.11 | CNCF-certified K8s, single binary, production features |
 | **GitOps** | FluxCD v2 | Declarative cluster reconciliation from Git |
 | **IaC** | Terraform >= 1.0 | Infrastructure provisioning with modular composition |
 | **Ingress** | NGINX (planned) | HTTP traffic routing with rich annotations |

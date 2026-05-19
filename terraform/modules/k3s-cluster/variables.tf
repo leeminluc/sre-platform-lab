@@ -20,7 +20,7 @@ variable "cluster_name" {
 variable "k3s_version" {
   description = "K3s version to install. Pin to a specific version for reproducibility."
   type        = string
-  default     = "v1.30.0+k3s1"
+  default     = "v1.33.11+k3s1"
 }
 
 variable "disable_traefik" {

@@ -10,6 +10,6 @@
 # In production, you would use .tfvars.json with git-crypt or SOPS.
 # =============================================================================
 
-k3s_version     = "v1.30.0+k3s1"
+k3s_version     = "v1.33.11+k3s1"
 disable_traefik = true
 node_ip         = "127.0.0.1"

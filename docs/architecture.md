@@ -232,7 +232,7 @@ graph TB
 | Layer | Technology | Version | Why |
 |-------|-----------|---------|-----|
 | OS | Ubuntu / WSL2 | 20.04+ | Broad compatibility, production-like |
-| Kubernetes | k3s | v1.30.0+k3s1 | CNCF-certified, single binary, low resource |
+| Kubernetes | k3s | v1.33.11+k3s1 | CNCF-certified, single binary, low resource |
 | GitOps | FluxCD | v2.x | Lightweight, CNCF graduated, Kustomize-native |
 | IaC | Terraform | >= 1.0 | Industry standard, modular, state management |
 | Ingress | NGINX | (Milestone 2) | Battle-tested, rich annotations, wide adoption |
