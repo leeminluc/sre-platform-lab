@@ -265,6 +265,20 @@ sudo journalctl -u k3s -f
 # - Missing kernel modules
 ```
 
+### WSL2: "modprobe overlay" failure (harmless)
+
+If you see `ExecStartPre=/sbin/modprobe overlay (code=exited, status=1/FAILURE)` in `systemctl status k3s`, **this is safe to ignore on WSL2**. The overlay filesystem is built into the WSL2 kernel rather than being a loadable module, so `modprobe` fails — but the overlay driver works correctly.
+
+Verify k3s is actually working despite this warning:
+
+```bash
+# If the node shows "Ready", k3s is fully operational
+sudo k3s kubectl get nodes
+
+# If you want to suppress the warning (cosmetic only):
+echo "overlay" | sudo tee /etc/modules-load.d/overlay.conf
+```
+
 ### Flux bootstrap fails
 
 ```bash
