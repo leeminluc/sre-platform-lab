@@ -4,12 +4,6 @@
 
 This guide walks you through provisioning a local k3s Kubernetes cluster for the SRE Platform Lab. K3s is a **CNCF-certified** Kubernetes distribution that runs as a single binary, making it ideal for local development and lab environments.
 
-> **Why k3s and not minikube or kind?**
-> - k3s runs as a systemd service (production-like process management)
-> - Supports HA control plane (can simulate production topology)
-> - Uses containerd (same as production EKS/GKE/AKS)
-> - Includes CoreDNS, metrics-server, and local-path-provisioner by default
-
 ---
 
 ## Prerequisites
